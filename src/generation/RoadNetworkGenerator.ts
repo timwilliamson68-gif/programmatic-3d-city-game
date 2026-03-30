@@ -12,82 +12,77 @@ function makeRNG(seed: number): () => number {
   };
 }
 
-const rng = makeRNG(CITY_CONFIG.seed);
-
 export function createRoadNetwork(scene: THREE.Scene): void {
-  const { mapSize, gridSize, roadWidth } = CITY_CONFIG;
+  const rng = makeRNG(CITY_CONFIG.seed);
+  const { mapSize, gridSize, roadWidth, subRoadWidth } = CITY_CONFIG;
   const half = mapSize / 2;
   const cellSize = mapSize / gridSize;
 
-  // --- Ground plane ---
   const groundGeo = new THREE.PlaneGeometry(mapSize, mapSize, 1, 1);
   groundGeo.rotateX(-Math.PI / 2);
   const groundMat = new THREE.MeshStandardMaterial({
-    color: 0x0a0a0a,
+    color: 0x1a1a1a,
     roughness: 0.9,
     metalness: 0.1,
   });
   const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.position.y = -0.1;
+  ground.position.y = -0.05;
   scene.add(ground);
 
-  // --- Main road grid (horizontal + vertical lines) ---
   const roadMat = new THREE.MeshStandardMaterial({
-    color: 0x2a2a2a,
+    color: 0x333333,
     roughness: 0.7,
     metalness: 0.2,
   });
 
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+
+  const lineDashLength = 10;
+  const lineGapLength = 10;
+  const dashesPerRoad = Math.ceil(mapSize / (lineDashLength + lineGapLength));
+  const totalDashes = (gridSize + 1) * 2 * dashesPerRoad;
+
+  const instancedDashes = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(0.5, lineDashLength),
+    lineMat,
+    totalDashes
+  );
+  let dashIdx = 0;
+  const dummy = new THREE.Object3D();
+
   for (let i = 0; i <= gridSize; i++) {
     const offset = -half + i * cellSize;
 
-    // Vertical road
-    const vRoad = new THREE.Mesh(
-      new THREE.PlaneGeometry(roadWidth, mapSize),
-      roadMat
-    );
+    const vRoad = new THREE.Mesh(new THREE.PlaneGeometry(roadWidth, mapSize), roadMat);
     vRoad.rotation.x = -Math.PI / 2;
     vRoad.position.set(offset, 0.01, 0);
     scene.add(vRoad);
 
-    // Horizontal road
-    const hRoad = new THREE.Mesh(
-      new THREE.PlaneGeometry(mapSize, roadWidth),
-      roadMat
-    );
+    const hRoad = new THREE.Mesh(new THREE.PlaneGeometry(mapSize, roadWidth), roadMat);
     hRoad.rotation.x = -Math.PI / 2;
     hRoad.position.set(0, 0.01, offset);
     scene.add(hRoad);
+
+    for (let j = 0; j < dashesPerRoad; j++) {
+      const linePos = -half + j * (lineDashLength + lineGapLength) + lineDashLength / 2;
+
+      dummy.position.set(offset, 0.02, linePos);
+      dummy.rotation.set(-Math.PI / 2, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      instancedDashes.setMatrix(dashIdx++, dummy.matrix);
+
+      dummy.position.set(linePos, 0.02, offset);
+      dummy.rotation.set(-Math.PI / 2, 0, Math.PI / 2);
+      dummy.updateMatrix();
+      instancedDashes.setMatrix(dashIdx++, dummy.matrix);
+    }
   }
+  instancedDashes.count = dashIdx;
+  scene.add(instancedDashes);
 
-  // --- Road markings (center lines) ---
-  const lineMat = new THREE.MeshBasicMaterial({ color: 0x555533 });
-
-  for (let i = 0; i <= gridSize; i++) {
-    const offset = -half + i * cellSize;
-
-    // Vertical center line
-    const vLine = new THREE.Mesh(
-      new THREE.PlaneGeometry(1, mapSize),
-      lineMat
-    );
-    vLine.rotation.x = -Math.PI / 2;
-    vLine.position.set(offset, 0.02, 0);
-    scene.add(vLine);
-
-    // Horizontal center line
-    const hLine = new THREE.Mesh(
-      new THREE.PlaneGeometry(mapSize, 1),
-      lineMat
-    );
-    hLine.rotation.x = -Math.PI / 2;
-    hLine.position.set(0, 0.02, offset);
-    scene.add(hLine);
-  }
-
-  // --- Sub-roads (random minor roads within each cell) ---
   const subMat = new THREE.MeshStandardMaterial({
-    color: 0x1a1a1a,
+    color: 0x222222,
     roughness: 0.8,
     metalness: 0.1,
   });
@@ -97,28 +92,23 @@ export function createRoadNetwork(scene: THREE.Scene): void {
       const cellX = -half + gi * cellSize + cellSize / 2;
       const cellZ = -half + gj * cellSize + cellSize / 2;
 
-      // 1–3 sub-roads per cell using noise-derived seed
-      const subCount = Math.floor(simplex2D(gi * 3.1, gj * 2.7) * 2 + 2.5);
+      const subCount = Math.floor(simplex2D(gi * 0.5, gj * 0.5) + 2.5);
 
       for (let k = 0; k < subCount; k++) {
         const isHorizontal = rng() > 0.5;
-        const spread = rng() * cellSize * 0.4;
+        const spread = (rng() - 0.5) * cellSize * 0.6;
+        const length = cellSize * 0.8;
+        const actualWidth = 15 + rng() * 10;
 
         if (isHorizontal) {
-          const road = new THREE.Mesh(
-            new THREE.PlaneGeometry(cellSize * 0.8, CITY_CONFIG.subRoadWidth),
-            subMat
-          );
+          const road = new THREE.Mesh(new THREE.PlaneGeometry(length, actualWidth), subMat);
           road.rotation.x = -Math.PI / 2;
-          road.position.set(cellX + (rng() - 0.5) * cellSize * 0.4, 0.02, cellZ + spread);
+          road.position.set(cellX, 0.015, cellZ + spread);
           scene.add(road);
         } else {
-          const road = new THREE.Mesh(
-            new THREE.PlaneGeometry(CITY_CONFIG.subRoadWidth, cellSize * 0.8),
-            subMat
-          );
+          const road = new THREE.Mesh(new THREE.PlaneGeometry(actualWidth, length), subMat);
           road.rotation.x = -Math.PI / 2;
-          road.position.set(cellX + spread, 0.02, cellZ + (rng() - 0.5) * cellSize * 0.4);
+          road.position.set(cellX + spread, 0.015, cellZ);
           scene.add(road);
         }
       }
