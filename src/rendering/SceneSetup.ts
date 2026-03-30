@@ -16,7 +16,7 @@ export function setupScene(container: HTMLElement): SceneSetupResult {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
+  renderer.toneMappingExposure = 1.8;
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -46,6 +46,41 @@ export function setupScene(container: HTMLElement): SceneSetupResult {
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
   window.addEventListener('resize', onResize);
+
+  // WASD / arrow-key fly camera movement
+  const keys = new Set<string>();
+  window.addEventListener('keydown', (e) => keys.add(e.code));
+  window.addEventListener('keyup', (e) => keys.delete(e.code));
+
+  const moveSpeed = 50; // units per second
+
+  controls.updateKeyboard = (delta: number): void => {
+    const speed = moveSpeed * delta;
+    const forward = new THREE.Vector3();
+    camera.getWorldDirection(forward);
+    forward.y = 0;
+    forward.normalize();
+    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+    if (keys.has('KeyW') || keys.has('ArrowUp')) {
+      camera.position.addScaledVector(forward, speed);
+    }
+    if (keys.has('KeyS') || keys.has('ArrowDown')) {
+      camera.position.addScaledVector(forward, -speed);
+    }
+    if (keys.has('KeyA') || keys.has('ArrowLeft')) {
+      camera.position.addScaledVector(right, -speed);
+    }
+    if (keys.has('KeyD') || keys.has('ArrowRight')) {
+      camera.position.addScaledVector(right, speed);
+    }
+    if (keys.has('KeyQ')) {
+      camera.position.y -= speed;
+    }
+    if (keys.has('KeyE')) {
+      camera.position.y += speed;
+    }
+  };
 
   return { renderer, scene, camera, controls };
 }

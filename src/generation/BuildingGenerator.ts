@@ -46,7 +46,7 @@ export function createBuildings(scene: THREE.Scene): void {
   const windowMat = new THREE.MeshStandardMaterial({
     color: 0x334455,
     emissive: 0x334455,
-    emissiveIntensity: 1.0,
+    emissiveIntensity: 1.5,
   });
   const instancedWindows = new THREE.InstancedMesh(
     new THREE.PlaneGeometry(1, 1),

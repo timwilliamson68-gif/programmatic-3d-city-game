@@ -18,7 +18,7 @@ export interface CityGeneratorResult {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
-  controls: OrbitControls;
+  controls: OrbitControls & { updateKeyboard: (delta: number) => void };
   composer: EffectComposer;
 }
 

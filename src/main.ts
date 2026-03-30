@@ -15,8 +15,14 @@ function startCity() {
 
   city = createCity(container);
 
+  let lastTime = performance.now();
+
   function animate() {
     animationId = requestAnimationFrame(animate);
+    const now = performance.now();
+    const delta = Math.min((now - lastTime) / 1000, 0.1);
+    lastTime = now;
+    city.controls.updateKeyboard(delta);
     city.controls.update();
     updateSkybox();
     city.composer.render();
