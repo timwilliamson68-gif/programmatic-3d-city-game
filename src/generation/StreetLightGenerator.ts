@@ -2,12 +2,13 @@ import * as THREE from 'three';
 import { CITY_CONFIG } from '../config/CityConfig';
 
 export function createStreetLights(scene: THREE.Scene): void {
-  const { mapSize, gridSize, cellSize, roadWidth } = { ...CITY_CONFIG, cellSize: CITY_CONFIG.mapSize / CITY_CONFIG.gridSize };
+  const cellSize = CITY_CONFIG.mapSize / CITY_CONFIG.gridSize;
+  const { mapSize, gridSize, roadWidth } = CITY_CONFIG;
   const half = mapSize / 2;
   const poleHeight = 8;
   const poleGeo = new THREE.CylinderGeometry(0.3, 0.3, poleHeight, 8);
   const armGeo = new THREE.BoxGeometry(2, 0.5, 0.5);
-  const lightMat = new THREE.MeshStandardMaterial({ color: 0xffcc77, emissive: 0xffcc77, emissiveIntensity: 2.0 });
+  const lightMat = new THREE.MeshStandardMaterial({ color: 0xffcc77, emissive: 0xffcc77, emissiveIntensity: 2.5 });
   const metalMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
   const numRoads = gridSize + 1;
@@ -17,7 +18,7 @@ export function createStreetLights(scene: THREE.Scene): void {
   const poles = new THREE.InstancedMesh(poleGeo, metalMat, totalLights);
   const arms = new THREE.InstancedMesh(armGeo, metalMat, totalLights);
   const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(0.5, 0.2, 0.5), lightMat, totalLights);
-  
+
   let idx = 0;
   const dummy = new THREE.Object3D();
 
@@ -37,14 +38,10 @@ export function createStreetLights(scene: THREE.Scene): void {
       dummy.position.set(offset + roadWidth / 2 + 1 - 0.7, poleHeight, pos);
       dummy.updateMatrix();
       arms.setMatrixAt(idx, dummy.matrix);
-      
+
       dummy.position.set(offset + roadWidth / 2 + 1 - 1.5, poleHeight - 0.2, pos);
       dummy.updateMatrix();
       heads.setMatrixAt(idx, dummy.matrix);
-
-      const pLight = new THREE.PointLight(0xffcc77, 0.5, 20);
-      pLight.position.set(offset + roadWidth / 2 + 1 - 1.5, poleHeight - 0.2, pos);
-      scene.add(pLight);
 
       idx++;
 
@@ -62,10 +59,6 @@ export function createStreetLights(scene: THREE.Scene): void {
       dummy.position.set(pos, poleHeight - 0.2, offset + roadWidth / 2 + 1 - 1.5);
       dummy.updateMatrix();
       heads.setMatrixAt(idx, dummy.matrix);
-
-      const pLightH = new THREE.PointLight(0xffcc77, 0.5, 20);
-      pLightH.position.set(pos, poleHeight - 0.2, offset + roadWidth / 2 + 1 - 1.5);
-      scene.add(pLightH);
 
       idx++;
     }

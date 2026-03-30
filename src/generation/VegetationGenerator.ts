@@ -32,7 +32,6 @@ export function createVegetation(scene: THREE.Scene): void {
   let efIdx = 0;
   const dummy = new THREE.Object3D();
 
-  // Grass planes for park zones
   const grassMat = new THREE.MeshStandardMaterial({ color: 0x1a3a1a, roughness: 1.0 });
 
   for (let gi = 0; gi < gridSize; gi++) {
@@ -67,9 +66,9 @@ export function createVegetation(scene: THREE.Scene): void {
         dummy.updateMatrix();
 
         if (rng() < 0.1) {
-            emissiveFoliage.setMatrixAt(efIdx++, dummy.matrix);
+          emissiveFoliage.setMatrixAt(efIdx++, dummy.matrix);
         } else {
-            foliage.setMatrixAt(fIdx++, dummy.matrix);
+          foliage.setMatrixAt(fIdx++, dummy.matrix);
         }
       }
     }

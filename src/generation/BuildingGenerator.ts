@@ -19,8 +19,8 @@ export function createBuildings(scene: THREE.Scene): void {
   const half = mapSize / 2;
   const cellSize = mapSize / gridSize;
 
-  const buildingCount = 200; // Updated limit
-  
+  const buildingCount = 200;
+
   const materials: Record<Exclude<ZoneType, 'park'>, THREE.MeshStandardMaterial> = {
     commercial: new THREE.MeshStandardMaterial({ color: 0x444466, metalness: 0.8, roughness: 0.2 }),
     residential: new THREE.MeshStandardMaterial({ color: 0x664444, metalness: 0.1, roughness: 0.9 }),

@@ -7,7 +7,7 @@ export function createHighways(scene: THREE.Scene): void {
 
   const dummy = new THREE.Object3D();
 
-  // Highway 1
+  // Highway 1: east-west at z=300, elevated 16m
   const h1Width = 18;
   const h1Z = 300;
   const h1Height = 16;
@@ -16,7 +16,7 @@ export function createHighways(scene: THREE.Scene): void {
   h1.position.set(0, h1Height, h1Z);
   scene.add(h1);
 
-  // Highway 2
+  // Highway 2: north-south at x=-200, elevated 16m
   const h2Width = 22;
   const h2X = -200;
   const h2Height = 16;
@@ -26,35 +26,30 @@ export function createHighways(scene: THREE.Scene): void {
   scene.add(h2);
 
   // Pillars
-  const pillarGeo = new THREE.CylinderGeometry(1.5, 1.5, 22, 16);
+  const pillarGeo = new THREE.CylinderGeometry(1.5, 1.5, 1, 16);
   const pillars = new THREE.InstancedMesh(pillarGeo, pillarMat, 40);
   let pIdx = 0;
 
-  // H1 Pillars
   for (let x = -1000; x <= 1000; x += 100) {
-    dummy.position.set(x, 18 / 2, h1Z);
-    dummy.scale.set(1, 18/22, 1); // Radius is correct, height adjusted via position and scale if needed, but let's just set height directly
-    // Wait, requirement: radius 1.5m, height 18~22m
-    // Let's adjust pillar height
-    const h = 18;
+    const h = h1Height;
     dummy.position.set(x, h / 2, h1Z);
-    dummy.scale.set(1, h / 22, 1);
+    dummy.scale.set(1, h, 1);
+    dummy.rotation.set(0, 0, 0);
     dummy.updateMatrix();
     pillars.setMatrixAt(pIdx++, dummy.matrix);
   }
 
-  // H2 Pillars
   for (let z = -1000; z <= 1000; z += 100) {
-    const h = 22;
+    const h = h2Height;
     dummy.position.set(h2X, h / 2, z);
-    dummy.scale.set(1, h / 22, 1);
+    dummy.scale.set(1, h, 1);
     dummy.updateMatrix();
     pillars.setMatrixAt(pIdx++, dummy.matrix);
   }
   pillars.count = pIdx;
   scene.add(pillars);
 
-  // Lanes for H1
+  // Lane dashes for H1
   const laneGeo = new THREE.PlaneGeometry(10, 0.5);
   const h1Lanes = new THREE.InstancedMesh(laneGeo, laneMat, 100);
   let lIdx = 0;
@@ -68,7 +63,7 @@ export function createHighways(scene: THREE.Scene): void {
   h1Lanes.count = lIdx;
   scene.add(h1Lanes);
 
-  // Lanes for H2
+  // Lane dashes for H2
   const h2Lanes = new THREE.InstancedMesh(laneGeo, laneMat, 100);
   lIdx = 0;
   for (let z = -1000; z <= 1000; z += 20) {
