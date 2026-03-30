@@ -1,0 +1,80 @@
+实现程序化3D夜之城P1功能。在P0基础上增加：功能分区、多种建筑类型、高架桥、路灯、植被。
+
+## 项目信息
+- 路径: C:\Users\47428\.openclaw\workspace\programmatic-3d-city-game
+- 技术: Three.js r165 + TypeScript + Vite
+- 分支: 从 main 创建新分支 p1-implementation
+
+## P1 实现清单
+
+### 1. src/config/CityConfig.ts 扩展
+增加分区配置：
+- ZONE_TYPES: ['commercial', 'residential', 'industrial', 'park']
+- 地图划分为 5×5 区块，每个区块随机分配类型
+  - commercial 35%: 楼高 80~200m，密度高
+  - residential 30%: 楼高 30~80m，密度中
+  - industrial 20%: 楼高 10~30m，密度低
+  - park 15%: 无建筑，放植被
+- 分区用 Simplex Noise 确保每次 seed=42 生成一致
+
+### 2. src/generation/ZonePlacer.ts（新建）
+- 根据 seed=42 生成的 Noise 将地图分为 5×5 区块
+- 每区块中心点计算 noise 值，映射到类型
+- 导出 getZoneType(x: number, z: number): ZoneType 函数
+- 可用 CityConfig 中的简单随机或 noise
+
+### 3. src/generation/BuildingGenerator.ts 升级
+改造为多建筑类型：
+- 建筑分4种类型，根据所在区域类型决定：
+  - commercial: 玻璃幕墙高层，BoxGeometry + MeshStandardMaterial(metalness:0.8, roughness:0.2)，高度 80~200m，窗灯为蓝色冷光
+  - residential: 混凝土中层，BoxGeometry(metalness:0.1, roughness:0.9)，高度 30~80m，窗灯为暖黄色
+  - industrial: 低矮厂房，BoxGeometry(h:10~30m)，颜色偏锈红/灰色，屋顶有通风管道小结构
+  - park: 不生成建筑
+- 每栋楼屋顶随机：平顶 / 阶梯退缩 / 天线（细长Box）/ 冷却塔（矮圆柱）
+- 保持 InstancedMesh 优化（按材质/类型分组）
+
+### 4. src/generation/HighwayGenerator.ts（新建）
+- 生成 2 条贯穿地图的高速高架桥：
+  - Highway 1: 从 x=-1000 到 x=1000，z=300，架高 18m，宽度 16m，双向车道用黄色虚线分隔
+  - Highway 2: 从 z=-1000 到 z=1000，x=-200，架高 22m，宽度 16m
+- 高架桥支柱：每隔 100m 一个圆柱形桥墩（radius 1.5m, height 18~22m），深灰色
+- 护栏：PlaneGeometry 薄板沿桥两侧
+
+### 5. src/generation/StreetLightGenerator.ts（新建）
+- 路灯沿所有主干道生成，间距 30m，道路两侧各一
+- 灯杆：CylinderGeometry(r=0.3, height=8)
+- 灯头：BoxGeometry(2, 0.5, 0.5)
+- PointLight(intensity=0.5, color=#ffcc77, distance=20) 或 emissive 材质代替实灯光
+- 用 InstancedMesh 渲染所有路灯
+
+### 6. src/generation/VegetationGenerator.ts（新建）
+- 公园区域（park zone）生成树木
+- 树木：递归圆柱（trunk: CylinderGeometry brown）+ 圆锥/球形树冠（green/emissive）
+- 每棵树的 height 5~15m 随机
+- 每区块公园内生成 20~40 棵树，用 InstancedMesh
+- 简单草地：PlaneGeometry 绿色（color: #1a3a1a）在公园区域铺底
+- 非公园区域路边也可少量植树（10%概率）
+
+### 7. src/rendering/PostProcessing.ts 检查确认
+- UnrealBloomPass: threshold 0.1, strength 1.2, radius 0.6
+- 确保 emissiveIntensity > 1 的霓虹招牌能被 Bloom 影响
+
+### 8. src/CityGenerator.ts 升级
+- 按顺序调用：
+  1. SceneSetup → Lighting → Skybox
+  2. RoadNetworkGenerator
+  3. ZonePlacer（先生成分区）
+  4. HighwayGenerator（高架桥）
+  5. BuildingGenerator（升级版，按分区生成不同建筑）
+  6. StreetLightGenerator
+  7. VegetationGenerator
+  8. PostProcessing
+
+### 约束
+- TypeScript 严格模式，无 any
+- 保持 InstancedMesh 优化，总 mesh 数不超过 200
+- seed=42 保证可复现
+- 完成后从 main 创建新分支，推送到 GitHub
+
+### 完成后
+汇报：修改了哪些文件、新增了哪些文件，共多少行代码

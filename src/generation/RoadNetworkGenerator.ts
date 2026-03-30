@@ -70,12 +70,12 @@ export function createRoadNetwork(scene: THREE.Scene): void {
       dummy.rotation.set(-Math.PI / 2, 0, 0);
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
-      instancedDashes.setMatrix(dashIdx++, dummy.matrix);
+      instancedDashes.setMatrixAt(dashIdx++, dummy.matrix);
 
       dummy.position.set(linePos, 0.02, offset);
       dummy.rotation.set(-Math.PI / 2, 0, Math.PI / 2);
       dummy.updateMatrix();
-      instancedDashes.setMatrix(dashIdx++, dummy.matrix);
+      instancedDashes.setMatrixAt(dashIdx++, dummy.matrix);
     }
   }
   instancedDashes.count = dashIdx;
