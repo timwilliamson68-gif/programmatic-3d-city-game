@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { CITY_CONFIG, ZoneType } from '../config/CityConfig';
 import { NEON_COLORS } from '../utils/ColorPalette';
 import { ZonePlacer } from './ZonePlacer';
+import { MATERIALS } from '../rendering/Materials';
+import { getGroundHeight } from './GroundGenerator';
 
 function makeRNG(seed: number): () => number {
   let s = seed | 0;
@@ -15,16 +17,17 @@ function makeRNG(seed: number): () => number {
 
 export function createBuildings(scene: THREE.Scene): void {
   const rng = makeRNG(CITY_CONFIG.seed + 1);
-  const { mapSize, gridSize, roadWidth } = CITY_CONFIG;
+  const { mapSize, gridSize, roadWidth, buildingDensity, neonIntensity } = CITY_CONFIG;
   const half = mapSize / 2;
   const cellSize = mapSize / gridSize;
 
-  const buildingCount = 200;
+  const baseBuildingCount = 200;
+  const buildingCount = Math.floor(baseBuildingCount * buildingDensity);
 
-  const materials: Record<Exclude<ZoneType, 'park'>, THREE.MeshStandardMaterial> = {
-    commercial: new THREE.MeshStandardMaterial({ color: 0x444466, metalness: 0.8, roughness: 0.2 }),
-    residential: new THREE.MeshStandardMaterial({ color: 0x664444, metalness: 0.1, roughness: 0.9 }),
-    industrial: new THREE.MeshStandardMaterial({ color: 0x446644, metalness: 0.4, roughness: 0.6 }),
+  const materials: Record<Exclude<ZoneType, 'park'>, THREE.Material> = {
+    commercial: MATERIALS.glassWall,
+    residential: MATERIALS.concrete,
+    industrial: MATERIALS.industrial,
   };
 
   const instancedMeshes: Record<Exclude<ZoneType, 'park'>, THREE.InstancedMesh> = {
@@ -53,16 +56,14 @@ export function createBuildings(scene: THREE.Scene): void {
 
   const neonMeshes: Record<string, THREE.InstancedMesh> = {};
   const neonCounts: Record<string, number> = {};
-  const maxSignsPerColor = buildingCount * 5;
+  const maxSignsPerColor = buildingCount * 6;
 
+  const signHeight = 5;
   NEON_COLORS.forEach(color => {
-    const mat = new THREE.MeshStandardMaterial({
-      color: color,
-      emissive: color,
-      emissiveIntensity: 3.0,
-    });
+    const mat = MATERIALS.neonSign(color);
+    mat.emissiveIntensity = neonIntensity;
     neonMeshes[color] = new THREE.InstancedMesh(
-      new THREE.PlaneGeometry(1, 1),
+      new THREE.BoxGeometry(10, signHeight, 0.5),
       mat,
       maxSignsPerColor
     );
@@ -86,12 +87,14 @@ export function createBuildings(scene: THREE.Scene): void {
     const x = cellX + (rng() - 0.5) * (cellSize - roadWidth - 20);
     const z = cellZ + (rng() - 0.5) * (cellSize - roadWidth - 20);
 
+    const groundY = getGroundHeight(x, z);
+
     const heightRange = CITY_CONFIG.buildingHeights[zone];
     const height = heightRange.min + rng() * (heightRange.max - heightRange.min);
     const width = 15 + rng() * 25;
     const depth = 15 + rng() * 25;
 
-    dummy.position.set(x, height / 2, z);
+    dummy.position.set(x, groundY + height / 2, z);
     dummy.scale.set(width, height, depth);
     dummy.rotation.set(0, 0, 0);
     dummy.updateMatrix();
@@ -106,16 +109,16 @@ export function createBuildings(scene: THREE.Scene): void {
 
       dummy.scale.set(1.5, 1, 1);
       if (face === 0) {
-        dummy.position.set(x + sidePos * width, height * hLevel, z + depth / 2 + 0.1);
+        dummy.position.set(x + sidePos * width, groundY + height * hLevel, z + depth / 2 + 0.1);
         dummy.rotation.set(0, 0, 0);
       } else if (face === 1) {
-        dummy.position.set(x + sidePos * width, height * hLevel, z - depth / 2 - 0.1);
+        dummy.position.set(x + sidePos * width, groundY + height * hLevel, z - depth / 2 - 0.1);
         dummy.rotation.set(0, Math.PI, 0);
       } else if (face === 2) {
-        dummy.position.set(x + width / 2 + 0.1, height * hLevel, z + sidePos * depth);
+        dummy.position.set(x + width / 2 + 0.1, groundY + height * hLevel, z + sidePos * depth);
         dummy.rotation.set(0, Math.PI / 2, 0);
       } else {
-        dummy.position.set(x - width / 2 - 0.1, height * hLevel, z + sidePos * depth);
+        dummy.position.set(x - width / 2 - 0.1, groundY + height * hLevel, z + sidePos * depth);
         dummy.rotation.set(0, -Math.PI / 2, 0);
       }
       dummy.updateMatrix();
@@ -123,29 +126,30 @@ export function createBuildings(scene: THREE.Scene): void {
     }
 
     if (zone === 'commercial') {
-      const neonCount = 2 + Math.floor(rng() * 3);
+      const neonCount = 1 + Math.floor(rng() * 2);
       for (let n = 0; n < neonCount; n++) {
         const color = NEON_COLORS[Math.floor(rng() * NEON_COLORS.length)];
         if (neonCounts[color] >= maxSignsPerColor) continue;
+        if (height < 15) continue;
 
-        const signW = 5 + rng() * 10;
-        const signH = 1 + rng() * 2;
         const face = Math.floor(rng() * 4);
-        const sy = rng() * height;
+        const minY = 12 + signHeight / 2;
+        const sy = groundY + minY + rng() * (height - minY - 2);
+        if (sy > groundY + height - signHeight / 2) continue;
         const offset = (rng() - 0.5) * 0.6;
 
-        dummy.scale.set(signW, signH, 1);
+        dummy.scale.set(1, 1, 1);
         if (face === 0) {
-          dummy.position.set(x + offset * width, sy, z + depth / 2 + 0.2);
+          dummy.position.set(x + offset * width, sy, z + depth / 2 + 0.3);
           dummy.rotation.set(0, 0, 0);
         } else if (face === 1) {
-          dummy.position.set(x + offset * width, sy, z - depth / 2 - 0.2);
+          dummy.position.set(x + offset * width, sy, z - depth / 2 - 0.3);
           dummy.rotation.set(0, Math.PI, 0);
         } else if (face === 2) {
-          dummy.position.set(x + width / 2 + 0.2, sy, z + offset * depth);
+          dummy.position.set(x + width / 2 + 0.3, sy, z + offset * depth);
           dummy.rotation.set(0, Math.PI / 2, 0);
         } else {
-          dummy.position.set(x - width / 2 - 0.2, sy, z + offset * depth);
+          dummy.position.set(x - width / 2 - 0.3, sy, z + offset * depth);
           dummy.rotation.set(0, -Math.PI / 2, 0);
         }
         dummy.updateMatrix();

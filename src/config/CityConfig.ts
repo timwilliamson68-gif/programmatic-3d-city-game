@@ -18,6 +18,11 @@ export const CITY_CONFIG = {
     industrial: { min: 10, max: 30 },
     park: { min: 0, max: 0 },
   },
+  terrainAmplitude: 8,
+  buildingDensity: 1.0,
+  neonIntensity: 4.0,
+  enableGiantNeon: true,
+  enableTerrain: true,
 };
 
 export const ZONE_TYPES: ZoneType[] = ['commercial', 'residential', 'industrial', 'park'];

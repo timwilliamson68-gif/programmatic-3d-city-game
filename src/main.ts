@@ -1,16 +1,32 @@
-import { createCity } from './CityGenerator';
+import { createCity, CityGeneratorResult } from './CityGenerator';
 import { updateSkybox } from './rendering/Skybox';
+import { setupUI } from './ui/CityControls';
 
 const container = document.getElementById('app') as HTMLElement;
 if (!container) throw new Error('#app element not found');
 
-const { renderer, scene, camera, controls, composer } = createCity(container);
+let city: CityGeneratorResult;
+let animationId: number;
 
-function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  updateSkybox();
-  composer.render();
+function startCity() {
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+  }
+
+  city = createCity(container);
+
+  function animate() {
+    animationId = requestAnimationFrame(animate);
+    city.controls.update();
+    updateSkybox();
+    city.composer.render();
+  }
+
+  animate();
 }
 
-animate();
+setupUI(() => {
+  startCity();
+});
+
+startCity();
